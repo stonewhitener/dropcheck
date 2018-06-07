@@ -1,0 +1,219 @@
+#!/usr/bin/env bash
+
+BANNER="
+  ___                  ___ _           _     ___ __  _ ___
+ |   \ _ _ ___ _ __   / __| |_  ___ __| |__ |_  )  \/ ( _ )
+ | |) | '_/ _ \ '_ \ | (__| ' \/ -_) _| / /  / / () | / _ \\
+ |___/|_| \___/ .__/  \___|_||_\___\__|_\_\ /___\__/|_\___/
+              |_|
+                                              (c) 2018 sira
+"
+
+GOOGLE_PUB_DNS_V4='8.8.8.8'
+GOOGLE_PUB_DNS_V6='2001:4860:4860::8888'
+
+WIDE_DOMAIN='www.wide.ad.jp'
+
+GOOGLE_IPV4='https://ipv4.google.com/'
+GOOGLE_IPV6='https://ipv6.google.com/'
+
+IPV4_RE="^([0-9]{1,3}\.){4}$"
+IPV6_RE="^([0-9a-fA-F]{0,4}:){1,7}([0-9a-fA-F]){0,4}$"
+
+
+if [ $# != 1 ]; then
+  echo "Usage: $0 interface" 1>&2
+  exit 1
+fi
+
+echo "$BANNER"
+
+
+if_name=$1
+
+
+# STEP 1.
+
+echo -e "\e[1mSTEP 1.\e[m Retrieve and check IP addresses"
+
+
+ipv4_addr=`ifconfig $if_name inet | grep -m 1 'inet' | awk '{print $2}'`
+ipv4_gw_addr=`netstat -rnf inet | grep -m 1 'default' | awk '{print $2}'`
+
+if [ -z $ipv4_addr ] || [ -z $ipv4_gw_addr ]; then
+  echo -ne "[\e[31;1mFAILED\e[m] "
+  echo "Unable to retrieve the IPv4 address"
+else
+  echo -ne "[\e[32;1mPASS\e[m] "
+  echo "IPv4 address: $ipv4_addr (default gateway: $ipv4_gw_addr)"
+fi
+
+
+ipv6_addr=`ifconfig $if_name inet6 | grep -m 2 'inet6' | tail -n1 | awk -F '\ +|%' '{print $2}'`
+ipv6_gw_addr=`netstat -rnf inet6 | grep -m 1 'default' | awk -F '\ +|%' '{print $2}'`
+
+if [ -z $ipv6_addr ] || [ -z $ipv6_gw_addr ]; then
+  echo -ne "[\e[31;1mFAILED\e[m] "
+  echo "Unable to retrieve the IPv6 address"
+else
+  echo -ne "[\e[32;1mPASS\e[m] "
+  echo "IPv6 address: $ipv6_addr (default gateway: $ipv6_gw_addr)"
+fi
+
+if [ -z $ipv4_addr ] || [ -z $ipv4_gw_addr ] || [ -z $ipv6_addr ] || [ -z $ipv6_gw_addr ]; then
+  echo -e "\e[1mCheck the DHCP server or set IP addresses by yourself\e[m"
+  exit 1
+fi
+
+
+echo
+
+
+# STEP 2.
+
+echo -e "\e[1mSTEP 2.\e[m Ping gateways and external servers"
+
+
+ping -c 3 $ipv4_gw_addr > /dev/null
+
+if [ $? != 0 ]; then
+  echo -ne "[\e[31;1mFAILED\e[m] "
+  echo "Unable to reach the gateway $ipv4_gw_addr"
+else
+  echo -ne "[\e[32;1mPASS\e[m] "
+  echo "ping $ipv4_gw_addr (IPv4 gateway)"
+fi
+
+
+ping -c 3 -s 1472 $ipv4_gw_addr > /dev/null
+
+if [ $? != 0 ]; then
+  echo -ne "[\e[31;1mFAILED\e[m] "
+  echo "Unable to reach the gateway $ipv4_gw_addr (1500 bytes)"
+else
+  echo -ne "[\e[32;1mPASS\e[m] "
+  echo "ping $ipv4_gw_addr (IPv4 gateway) with 1500 bytes"
+fi
+
+
+ping6 -c 3 $ipv6_gw_addr -I $if_name > /dev/null
+
+if [ $? != 0 ]; then
+  echo -ne "[\e[31;1mFAILED\e[m] "
+  echo "Unable to reach the gateway $ipv6_gw_addr"
+else
+  echo -ne "[\e[32;1mPASS\e[m] "
+  echo "ping $ipv6_gw_addr (IPv6 gateway)"
+fi
+
+
+ping6 -c 3 -s 1232 $ipv6_gw_addr -I $if_name > /dev/null
+
+if [ $? != 0 ]; then
+  echo -ne "[\e[31;1mFAILED\e[m] "
+  echo "Unable to reach the gateway $ipv6_gw_addr (1280 bytes)"
+else
+  echo -ne "[\e[32;1mPASS\e[m] "
+  echo "ping $ipv6_gw_addr (IPv6 gateway) with 1280 bytes"
+fi
+
+
+ping -c 3 $GOOGLE_PUB_DNS_V4 > /dev/null
+
+if [ $? != 0 ]; then
+  echo -ne "[\e[31;1mFAILED\e[m] "
+  echo "Unable to reach the external server $GOOGLE_PUB_DNS_V4"
+else
+  echo -ne "[\e[32;1mPASS\e[m] "
+  echo "ping $GOOGLE_PUB_DNS_V4 (external)"
+fi
+
+
+ping -c 3 -s 1472 $GOOGLE_PUB_DNS_V4 > /dev/null
+
+if [ $? != 0 ]; then
+  echo -ne "[\e[31;1mFAILED\e[m] "
+  echo "Unable to reach the gateway $GOOGLE_PUB_DNS_V4 (1500 bytes)"
+else
+  echo -ne "[\e[32;1mPASS\e[m] "
+  echo "ping $GOOGLE_PUB_DNS_V4 (external) with 1500 bytes"
+fi
+
+
+ping6 -c 3 $GOOGLE_PUB_DNS_V6 -I $if_name > /dev/null
+
+if [ $? != 0 ]; then
+  echo -ne "[\e[31;1mFAILED\e[m] "
+  echo "Unable to reach the gateway $GOOGLE_PUB_DNS_V6"
+else
+  echo -ne "[\e[32;1mPASS\e[m] "
+  echo "ping $GOOGLE_PUB_DNS_V6 (external)"
+fi
+
+
+ping6 -c 3 -s 1232 $GOOGLE_PUB_DNS_V6 -I $if_name > /dev/null
+
+if [ $? != 0 ]; then
+  echo -ne "[\e[31;1mFAILED\e[m] "
+  echo "Unable to reach the gateway $GOOGLE_PUB_DNS_V6 (1280 bytes)"
+else
+  echo -ne "[\e[32;1mPASS\e[m] "
+  echo "ping $GOOGLE_PUB_DNS_V6 (external) with 1280 bytes"
+fi
+
+
+echo
+
+
+# STEP 3.
+
+echo -e "\e[1mSTEP 3.\e[m (resolve domains and access HTTP servers)"
+
+
+a_response=`dig +short $WIDE_DOMAIN A | grep -v -e '^$'`
+
+if [ $? != 0 ]; then
+  echo -ne "[\e[31;1mFAILED\e[m] "
+  echo "Unable to resolve the A record of $WIDE_DOMAIN"
+else
+  echo -ne "[\e[32;1mPASS\e[m] "
+  echo -e "$WIDE_DOMAIN IN A $a_response"
+fi
+
+
+aaaa_response=`dig +short $WIDE_DOMAIN AAAA | grep -v -e '^$'`
+
+if [ $? != 0 ]; then
+  echo -ne "[\e[31;1mFAILED\e[m] "
+  echo "Unable to resolve the AAAA record of $WIDE_DOMAIN"
+else
+  echo -ne "[\e[32;1mPASS\e[m] "
+  echo -e "$WIDE_DOMAIN IN AAAA $aaaa_response"
+fi
+
+
+http_v4_result=`wget --page-requisites $GOOGLE_IPV4 2>&1 | grep '200 OK'`
+
+if [ $? != 0 ]; then
+  echo -ne "[\e[31;1mFAILED\e[m] "
+  echo -e "Unable to access \e[4m$GOOGLE_IPV4\e[m"
+else
+  echo -ne "[\e[32;1mPASS\e[m] "
+  echo -ne "GET \e[4m$GOOGLE_IPV4\e[m: "
+  echo "$http_v4_result" | tail -n 1 | awk '{print $(NF-1),$NF}'
+fi
+
+
+http_v6_result=`wget --page-requisites $GOOGLE_IPV6 2>&1 | grep '200 OK'`
+
+if [ $? != 0 ]; then
+  echo -ne "[\e[31;1mFAILED\e[m] "
+  echo -e "Unable to access \e[4m$GOOGLE_IPV6\e[m"
+else
+  echo -ne "[\e[32;1mPASS\e[m] "
+  echo -ne "GET \e[4m$GOOGLE_IPV6\e[m: "
+  echo "$http_v6_result" | tail -n 1 | awk '{print $(NF-1),$NF}'
+fi
+
+
+echo
