@@ -3,8 +3,7 @@
 For Interop Tokyo 2018
 
 ```
-git clone https://github.com/y-sira/dropcheck.git
-cd dropcheck
+curl -Lo dropcheck https://raw.githubusercontent.com/y-sira/dropcheck/master/dropcheck
 chmod +x dropcheck
 ./dropcheck en0
 ```
