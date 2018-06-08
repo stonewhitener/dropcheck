@@ -285,7 +285,7 @@ main () {
 
   if_name=$1
 
-  echo_bold 'STEP 1. retrieve IP addresses'
+  echo_bold 'STEP 1. Retrieve IP addresses'
   test_ipv4 $if_name
   check_ipv4=$?
   test_ipv6 $if_name
@@ -298,7 +298,7 @@ main () {
   fi
   echo
 
-  echo_bold 'STEP 2. ping'
+  echo_bold 'STEP 2. Ping'
   if [ $check_ipv4 = 0 ]; then
     ipv4_addr=$(get_ipv4_addr ${if_name})
     ipv4_gw_addr=$(get_ipv4_gw_addr ${if_name})
@@ -326,6 +326,18 @@ main () {
   if [ $check_ipv6 = 0 ]; then
     test_http $GOOGLE_IPV6
   fi
+  echo
+
+  echo_bold 'STEP 4. Check service chainning'
+  echo_bold 'Invoke mtr using IPv4...'
+  echo_bold 'Enter your password, confirm traceroute result, and press q'
+  sudo screen -S 'mtrv4' mtr -4 -b $GOOGLE_PUBLIC_DNS_V4
+  echo_bold 'Invoke mtr using IPv6...'
+  echo_bold 'Enter your password, confirm traceroute result, and press q'
+  sudo screen -S 'mtrv6' mtr -6 -b $GOOGLE_PUBLIC_DNS_V6
+  echo
+
+  echo_bold 'Done!'
   echo
 
   # Cleanup
