@@ -2,12 +2,15 @@
 
 For Interop Tokyo 2018
 
+
 ## Requirements
 
 - macOS
 - iproute2mac
 - wget
 - screen
+- mtr
+
 
 ## Usage
 
