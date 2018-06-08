@@ -121,9 +121,9 @@ echo_test_status () {
     return 1
   fi
   if [ $1 != 0 ]; then
-    echo -ne "[\e[31;1mFAIL\e[m] "
+    printf "[\e[31;1mFAIL\e[m] "
   else
-    echo -ne "[\e[32;1mPASS\e[m] "
+    printf "[\e[32;1mPASS\e[m] "
   fi
   return 0
 }
@@ -132,7 +132,7 @@ echo_bold () {
   if [ $# != 1 ]; then
     return 1
   fi
-  echo -e "\e[1m${1}\e[m"
+  printf "\e[1m${1}\e[m\n"
   return 0
 }
 
