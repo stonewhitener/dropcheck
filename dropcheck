@@ -260,6 +260,7 @@ test_dig () {
   else
     echo "${1} IN ${2} ${res}"
   fi
+  return $ret
 }
 
 test_http () {
