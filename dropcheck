@@ -17,7 +17,7 @@ WIDE_DOMAIN='www.wide.ad.jp'
 GOOGLE_IPV4='https://ipv4.google.com/'
 GOOGLE_IPV6='https://ipv6.google.com/'
 
-TRACEROUTE_INTERVAL=0.5
+TRACEROUTE_INTERVAL=0.1
 
 
 get_ipv4_cidr() {
@@ -86,6 +86,10 @@ tag_fail() {
 tag_pass() {
   printf "[\e[32;1mPASS\e[m] "
   return 0
+}
+
+tag_info() {
+  printf "[\e[37;1mINFO\e[m] "
 }
 
 tag_test_status() {
@@ -347,15 +351,17 @@ main () {
   printb 'STEP 4. Check service chainning'
 
   if (($test_status_ipv4 == 0)); then
-    printb 'Invoke mtr using IPv4...'
-    mtr -4 -n -r -c 50 -i $TRACEROUTE_INTERVAL $GOOGLE_PUBLIC_DNS_V4
+    tag_info
+    echo 'mtr (IPv4)'
+    mtr -4 -n -r -c 100 -i $TRACEROUTE_INTERVAL $GOOGLE_PUBLIC_DNS_V4
+    echo
   fi
   if (($test_status_ipv6 == 0)); then
-    printb 'Invoke mtr using IPv6...'
-    mtr -6 -n -r -c 50 -i $TRACEROUTE_INTERVAL $GOOGLE_PUBLIC_DNS_V6
+    tag_info
+    echo 'mtr (IPv6)'
+    mtr -6 -n -r -c 100 -i $TRACEROUTE_INTERVAL $GOOGLE_PUBLIC_DNS_V6
+    echo
   fi
-
-  echo
 
   #================================
   # Cleanup
