@@ -149,8 +149,8 @@ test_ping_ipv4 () {
   local source_addr=$(get_ipv4_addr "$interface")
   local result
   case $# in
-    2 ) result=$(ping -c "$ICMP_COUNT" -i "$ICMP_INTERVAL" -S "$source_addr" "$host");;
-    3 ) result=$(ping -c "$ICMP_COUNT" -i "$ICMP_INTERVAL" -S "$source_addr" -s "$datasize" -D "$host");;
+    2 ) result=$(ping -c "$ICMP_COUNT" -i "$ICMP_INTERVAL" -S "$source_addr" "$host" 2>/dev/null);;
+    3 ) result=$(ping -c "$ICMP_COUNT" -i "$ICMP_INTERVAL" -S "$source_addr" -s "$datasize" -D "$host" 2>/dev/null);;
     * ) return 1;;
   esac
   local test_status=$?
@@ -177,8 +177,8 @@ test_ping_ipv6 () {
   fi
   local result
   case $# in
-    2 ) result=$(ping6 -c "$ICMP_COUNT" -i "$ICMP_INTERVAL" -I "$interface" "$host");;
-    3 ) result=$(ping6 -c "$ICMP_COUNT" -i "$ICMP_INTERVAL" -I "$interface" -s "$datasize" -D "$host");;
+    2 ) result=$(ping6 -c "$ICMP_COUNT" -i "$ICMP_INTERVAL" -I "$interface" "$host" 2>/dev/null);;
+    3 ) result=$(ping6 -c "$ICMP_COUNT" -i "$ICMP_INTERVAL" -I "$interface" -s "$datasize" -D "$host" 2>/dev/null);;
     * ) return 1;;
   esac
   local test_status=$?
