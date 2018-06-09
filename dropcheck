@@ -348,11 +348,11 @@ main () {
 
   if (($test_status_ipv4 == 0)); then
     printb 'Invoke mtr using IPv4...'
-    screen -S 'mtrv4' mtr -4 -n -i $TRACEROUTE_INTERVAL $GOOGLE_PUBLIC_DNS_V4
+    mtr -4 -n -r -c 50 -i $TRACEROUTE_INTERVAL $GOOGLE_PUBLIC_DNS_V4
   fi
   if (($test_status_ipv6 == 0)); then
     printb 'Invoke mtr using IPv6...'
-    screen -S 'mtrv6' mtr -6 -n -i $TRACEROUTE_INTERVAL $GOOGLE_PUBLIC_DNS_V6
+    mtr -6 -n -r -c 50 -i $TRACEROUTE_INTERVAL $GOOGLE_PUBLIC_DNS_V6
   fi
 
   echo
