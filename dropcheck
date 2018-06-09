@@ -177,8 +177,8 @@ test_ping_ipv6 () {
   fi
   local result
   case $# in
-    2 ) result=$($SUDO ping6 -c "$ICMP_COUNT" -i "$ICMP_INTERVAL" -I "$interface" "$host");;
-    3 ) result=$($SUDO ping6 -c "$ICMP_COUNT" -i "$ICMP_INTERVAL" -I "$interface" -s "$datasize" -D "$host");;
+    2 ) result=$(ping6 -c "$ICMP_COUNT" -i "$ICMP_INTERVAL" -I "$interface" "$host");;
+    3 ) result=$(ping6 -c "$ICMP_COUNT" -i "$ICMP_INTERVAL" -I "$interface" -s "$datasize" -D "$host");;
     * ) return 1;;
   esac
   local test_status=$?
@@ -250,8 +250,6 @@ main () {
 
   local interface="$1"
   local describe
-  local check
-
 
   #================================
   # STEP 1.
@@ -275,11 +273,11 @@ main () {
   fi
   echo
 
-
   #================================
   # STEP 2.
   #================================
   printb 'STEP 2. Ping'
+
   if (($test_status_ipv4 == 0)); then
     local ipv4_gw_addr=$(get_ipv4_gw_addr "$interface")
     describe=$(test_ping_ipv4 "$ipv4_gw_addr" "$interface")
@@ -317,13 +315,14 @@ main () {
     tag_test_status $?
     echo "$describe"
   fi
-  echo
 
+  echo
 
   #================================
   # STEP 3.
   #================================
   printb 'STEP 3. DNS and HTTP'
+
   describe=$(test_dns_a "$WIDE_DOMAIN")
   tag_test_status $?
   echo "$describe"
@@ -339,23 +338,24 @@ main () {
   describe=$(test_http_get "$GOOGLE_IPV6")
   tag_test_status $?
   echo "$describe"
-  echo
 
+  echo
 
   #================================
   # STEP 4.
   #================================
   printb 'STEP 4. Check service chainning'
+
   if (($test_status_ipv4 == 0)); then
     printb 'Invoke mtr using IPv4...'
-    $SUDO screen -S 'mtrv4' mtr -4 -n -i $TRACEROUTE_INTERVAL $GOOGLE_PUBLIC_DNS_V4
+    screen -S 'mtrv4' mtr -4 -n -i $TRACEROUTE_INTERVAL $GOOGLE_PUBLIC_DNS_V4
   fi
   if (($test_status_ipv6 == 0)); then
     printb 'Invoke mtr using IPv6...'
-    $SUDO screen -S 'mtrv6' mtr -6 -n -i $TRACEROUTE_INTERVAL $GOOGLE_PUBLIC_DNS_V6
+    screen -S 'mtrv6' mtr -6 -n -i $TRACEROUTE_INTERVAL $GOOGLE_PUBLIC_DNS_V6
   fi
-  echo
 
+  echo
 
   #================================
   # Cleanup
