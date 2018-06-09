@@ -1,21 +1,6 @@
 #!/usr/bin/env bash
 
 
-cat << EOF
-  ___                  ___ _           _     ___ __  _ ___
- |   \ _ _ ___ _ __   / __| |_  ___ __| |__ |_  )  \/ ( _ )
- | |) | '_/ _ \ '_ \ | (__| ' \/ -_) _| / /  / / () | / _ \\
- |___/|_| \___/ .__/  \___|_||_\___\__|_\_\ /___\__/|_\___/
-              |_|
-EOF
-
-
-SUDO=''
-if (($EUID != 0)); then
-    SUDO='sudo'
-fi
-
-
 IPV4_CIDR_RE='([0-9]{1,3}\.){3}[0-9]{1,3}\/([0-9]|[12][0-9]|3[0-2])'
 IPV6_CIDR_RE='([0-9a-fA-F:]+:+)+[0-9a-fA-F]+\/([0-9]|[1-8][0-9]|9[0-9]|1[01][0-9]|12[0-8])'
 IPV4_ADDR_RE='([0-9]{1,3}\.){3}[0-9]{1,3}'
@@ -32,11 +17,11 @@ WIDE_DOMAIN='www.wide.ad.jp'
 GOOGLE_IPV4='https://ipv4.google.com/'
 GOOGLE_IPV6='https://ipv6.google.com/'
 
-TRACEROUTE_INTERVAL=1
+TRACEROUTE_INTERVAL=0.5
 
 
 get_ipv4_cidr() {
-  (($# == 1)) || return 1
+  (($# != 1)) && return 1
   local interface="$1"
   local cidr=$(ip -4 addr show "$interface" | grep -m 1 'inet' | awk '{print $2}')
   echo "$cidr" | grep -E "$IPV4_CIDR_RE" &> /dev/null || return 1
@@ -45,7 +30,7 @@ get_ipv4_cidr() {
 }
 
 get_ipv4_addr() {
-  (($# == 1)) || return 1
+  (($# != 1)) && return 1
   local interface="$1"
   local cidr
   cidr=$(get_ipv4_cidr "$interface") || return 1
@@ -56,7 +41,7 @@ get_ipv4_addr() {
 }
 
 get_ipv4_gw_addr() {
-  (($# == 1)) || return 1
+  (($# != 1)) && return 1
   local interface="$1"
   local gw_addr=$(ip -4 route | grep -m 1 "default.*$interface" | awk '{print $3}')
   echo "$gw_addr" | grep -E "$IPV4_ADDR_RE" &> /dev/null || return 1
@@ -65,7 +50,7 @@ get_ipv4_gw_addr() {
 }
 
 get_ipv6_cidr() {
-  (($# == 1)) || return 1
+  (($# != 1)) && return 1
   local interface="$1"
   local cidr=$(ip -6 addr show "$interface" | grep 'inet6' | grep -m 1 -v 'fe80' | awk '{print $2}')
   echo "$cidr" | grep -E "$IPV6_CIDR_RE" &> /dev/null || return 1
@@ -74,8 +59,8 @@ get_ipv6_cidr() {
 }
 
 get_ipv6_addr() {
-  (($# == 1)) || return 1
-  local interface=$1
+  (($# != 1)) && return 1
+  local interface="$1"
   local cidr
   cidr=$(get_ipv6_cidr "$interface") || return 1
   local addr=$(echo "$cidr" | cut -d '/' -f 1)
@@ -85,8 +70,8 @@ get_ipv6_addr() {
 }
 
 get_ipv6_gw_addr() {
-  (($# == 1)) || return 1
-  local interface=$1
+  (($# != 1)) && return 1
+  local interface="$1"
   local gw_addr=$(ip -6 route | grep -m 1 "default.*$interface" | awk '{print $3}' | cut -d '%' -f 1)
   echo "$gw_addr" | grep -E "$IPV6_ADDR_RE" &> /dev/null || return 1
   echo "$gw_addr"
@@ -103,15 +88,22 @@ tag_pass() {
   return 0
 }
 
+tag_test_status() {
+  (($# != 1)) && return 1
+  local test_status=$1
+  (($test_status == 0)) && tag_pass || tag_fail
+  return 0
+}
+
 printb() {
-  (($# == 1)) || return 1
+  (($# != 1)) && return 1
   local text="$1"
   printf "\e[1m${text}\e[m\n"
   return 0
 }
 
 test_ipv4_addr_and_gw_addr() {
-  (($# == 1)) || return 1
+  (($# != 1)) && return 1
   local $interface="$1"
   local test_status=0
   local ipv4_cidr
@@ -129,7 +121,7 @@ test_ipv4_addr_and_gw_addr() {
 }
 
 test_ipv6_addr_and_gw_addr () {
-  (($# == 1)) || return 1
+  (($# != 1)) && return 1
   local $interface="$1"
   local test_status=0
   local ipv6_cidr
@@ -147,7 +139,7 @@ test_ipv6_addr_and_gw_addr () {
 }
 
 test_ping_ipv4 () {
-  (($# == 2)) || (($# == 3)) || return 1
+  (($# != 2)) && (($# != 3)) && return 1
   local host="$1"
   local interface="$2"
   if (($# == 3)); then
@@ -176,7 +168,7 @@ test_ping_ipv4 () {
 }
 
 test_ping_ipv6 () {
-  (($# == 2)) || (($# == 3)) || return 1
+  (($# != 2)) && (($# != 3)) && return 1
   local host="$1"
   local interface="$2"
   if (($# == 3)); then
@@ -204,7 +196,7 @@ test_ping_ipv6 () {
 }
 
 test_dns_a () {
-  (($# == 1)) || return 1
+  (($# != 1)) && return 1
   local domain="$1"
   local result
   result=$(dig +short "$domain" A | grep -v -e '^$')
@@ -218,7 +210,7 @@ test_dns_a () {
 }
 
 test_dns_aaaa () {
-  (($# == 1)) || return 1
+  (($# != 1)) && return 1
   local domain="$1"
   local result
   result=$(dig +short "$domain" AAAA | grep -v -e '^$')
@@ -232,7 +224,7 @@ test_dns_aaaa () {
 }
 
 test_http_get () {
-  (($# == 1)) || return 1
+  (($# != 1)) && return 1
   local url="$1"
   local result
   result=$(wget -p -T 3 -O .dropcheck "$url" 2>&1 | grep '200 OK')
@@ -251,6 +243,11 @@ main () {
     exit 1
   fi
 
+  if (($EUID != 0)); then
+    echo 'Please run as root'
+    exit 1
+  fi
+
   local interface="$1"
   local describe
   local check
@@ -262,16 +259,16 @@ main () {
   printb 'STEP 1. Retrieve IP addresses'
 
   describe=$(test_ipv4_addr_and_gw_addr "$interface")
-  local check_ipv4=$?
-  (($check_ipv4 == 0)) && tag_pass || tag_fail
+  local test_status_ipv4=$?
+  tag_test_status $test_status_ipv4
   echo "$describe"
 
   describe=$(test_ipv6_addr_and_gw_addr "$interface")
-  local check_ipv6=$?
-  (($check_ipv6 == 0)) && tag_pass || tag_fail
+  local test_status_ipv6=$?
+  tag_test_status $test_status_ipv6
   echo "$describe"
 
-  if (($check_ipv4 != 0)) && (($check_ipv6 != 0)); then
+  if (($test_status_ipv4 != 0)) && (($test_status_ipv6 != 0)); then
     printb "\nUnable to retrieve IP address(es)."
     printb "Check the DHCP server or set IP address(es) by your self.\n"
     exit 1
@@ -283,49 +280,41 @@ main () {
   # STEP 2.
   #================================
   printb 'STEP 2. Ping'
-  if (($check_ipv4 == 0)); then
+  if (($test_status_ipv4 == 0)); then
     local ipv4_gw_addr=$(get_ipv4_gw_addr "$interface")
     describe=$(test_ping_ipv4 "$ipv4_gw_addr" "$interface")
-    check=$?
-    (($check == 0)) && tag_pass || tag_fail
+    tag_test_status $?
     echo "$describe"
 
     describe=$(test_ping_ipv4 "$ipv4_gw_addr" "$interface" 1500)
-    check=$?
-    (($check == 0)) && tag_pass || tag_fail
+    tag_test_status $?
     echo "$describe"
 
     describe=$(test_ping_ipv4 "$GOOGLE_PUBLIC_DNS_V4" "$interface")
-    check=$?
-    (($check == 0)) && tag_pass || tag_fail
+    tag_test_status $?
     echo "$describe"
 
     describe=$(test_ping_ipv4 "$GOOGLE_PUBLIC_DNS_V4" "$interface" 1500)
-    check=$?
-    (($check == 0)) && tag_pass || tag_fail
+    tag_test_status $?
     echo "$describe"
   fi
 
-  if (($check_ipv6 == 0)); then
+  if (($test_status_ipv6 == 0)); then
     local ipv6_gw_addr=$(get_ipv6_gw_addr "$interface")
     describe=$(test_ping_ipv6 "$ipv6_gw_addr" "$interface")
-    check=$?
-    (($check == 0)) && tag_pass || tag_fail
+    tag_test_status $?
     echo "$describe"
 
     describe=$(test_ping_ipv6 "$ipv6_gw_addr" "$interface" 1280)
-    check=$?
-    (($check == 0)) && tag_pass || tag_fail
+    tag_test_status $?
     echo "$describe"
 
     describe=$(test_ping_ipv6 "$GOOGLE_PUBLIC_DNS_V6" "$interface")
-    check=$?
-    (($check == 0)) && tag_pass || tag_fail
+    tag_test_status $?
     echo "$describe"
 
     describe=$(test_ping_ipv6 "$GOOGLE_PUBLIC_DNS_V6" "$interface" 1280)
-    check=$?
-    (($check == 0)) && tag_pass || tag_fail
+    tag_test_status $?
     echo "$describe"
   fi
   echo
@@ -336,23 +325,19 @@ main () {
   #================================
   printb 'STEP 3. DNS and HTTP'
   describe=$(test_dns_a "$WIDE_DOMAIN")
-  check=$?
-  (($check == 0)) && tag_pass || tag_fail
+  tag_test_status $?
   echo "$describe"
 
   describe=$(test_dns_aaaa "$WIDE_DOMAIN")
-  check=$?
-  (($check == 0)) && tag_pass || tag_fail
+  tag_test_status $?
   echo "$describe"
 
   describe=$(test_http_get "$GOOGLE_IPV4")
-  check=$?
-  (($check == 0)) && tag_pass || tag_fail
+  tag_test_status $?
   echo "$describe"
 
   describe=$(test_http_get "$GOOGLE_IPV6")
-  check=$?
-  (($check == 0)) && tag_pass || tag_fail
+  tag_test_status $?
   echo "$describe"
   echo
 
@@ -361,10 +346,14 @@ main () {
   # STEP 4.
   #================================
   printb 'STEP 4. Check service chainning'
-  printb 'Invoke mtr using IPv4...'
-  $SUDO screen -S 'mtrv4' mtr -4 -n -i $TRACEROUTE_INTERVAL $GOOGLE_PUBLIC_DNS_V4
-  printb 'Invoke mtr using IPv6...'
-  $SUDO screen -S 'mtrv6' mtr -6 -n -i $TRACEROUTE_INTERVAL $GOOGLE_PUBLIC_DNS_V6
+  if (($test_status_ipv4 == 0)); then
+    printb 'Invoke mtr using IPv4...'
+    $SUDO screen -S 'mtrv4' mtr -4 -n -i $TRACEROUTE_INTERVAL $GOOGLE_PUBLIC_DNS_V4
+  fi
+  if (($test_status_ipv6 == 0)); then
+    printb 'Invoke mtr using IPv6...'
+    $SUDO screen -S 'mtrv6' mtr -6 -n -i $TRACEROUTE_INTERVAL $GOOGLE_PUBLIC_DNS_V6
+  fi
   echo
 
 

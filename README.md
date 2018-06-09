@@ -28,5 +28,5 @@ ip link set en2 down
 ...
 
 # Run tests
-./dropcheck en0
+sudo ./dropcheck en0
 ```
