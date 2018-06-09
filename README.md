@@ -14,7 +14,7 @@ For Interop Tokyo 2018
 
 ## Usage
 
-```
+```sh
 # Download this script and make executable
 curl -Lo dropcheck https://raw.githubusercontent.com/y-sira/dropcheck/master/dropcheck
 chmod +x dropcheck
