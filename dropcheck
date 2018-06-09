@@ -1,12 +1,19 @@
 #!/usr/bin/env bash
 
-BANNER="
+
+cat << EOF
   ___                  ___ _           _     ___ __  _ ___
  |   \ _ _ ___ _ __   / __| |_  ___ __| |__ |_  )  \/ ( _ )
  | |) | '_/ _ \ '_ \ | (__| ' \/ -_) _| / /  / / () | / _ \\
  |___/|_| \___/ .__/  \___|_||_\___\__|_\_\ /___\__/|_\___/
               |_|
-"
+EOF
+
+
+SUDO=''
+if (($EUID != 0)); then
+    SUDO='sudo'
+fi
 
 
 IPV4_CIDR_RE='([0-9]{1,3}\.){3}[0-9]{1,3}\/([0-9]|[12][0-9]|3[0-2])'
@@ -29,6 +36,7 @@ TRACEROUTE_INTERVAL=1
 
 
 get_ipv4_cidr() {
+  (($# == 1)) || return 1
   local interface="$1"
   local cidr=$(ip -4 addr show "$interface" | grep -m 1 'inet' | awk '{print $2}')
   echo "$cidr" | grep -E "$IPV4_CIDR_RE" &> /dev/null || return 1
@@ -37,7 +45,7 @@ get_ipv4_cidr() {
 }
 
 get_ipv4_addr() {
-  (($# == 1)) || return 1c
+  (($# == 1)) || return 1
   local interface="$1"
   local cidr
   cidr=$(get_ipv4_cidr "$interface") || return 1
@@ -95,17 +103,6 @@ tag_pass() {
   return 0
 }
 
-
-# print_test_status() {
-#   local test_status=$1
-#   if (($test_status != 0)); then
-#     tag_fail
-#   else
-#     tag_pass
-#   fi
-#   return 0
-# }
-
 printb() {
   (($# == 1)) || return 1
   local text="$1"
@@ -161,7 +158,7 @@ test_ping_ipv4 () {
   local result
   case $# in
     2 ) result=$(ping -c "$ICMP_COUNT" -i "$ICMP_INTERVAL" -S "$source_addr" "$host");;
-    3 ) result=$(ping -c "$ICMP_COUNT" -i "$ICMP_INTERVAL" -S "$source_addr" -s "$datasize" "$host");;
+    3 ) result=$(ping -c "$ICMP_COUNT" -i "$ICMP_INTERVAL" -S "$source_addr" -s "$datasize" -D "$host");;
     * ) return 1;;
   esac
   local test_status=$?
@@ -188,8 +185,8 @@ test_ping_ipv6 () {
   fi
   local result
   case $# in
-    2 ) result=$(ping6 -c "$ICMP_COUNT" -i "$ICMP_INTERVAL" -I "$interface" "$host");;
-    3 ) result=$(ping6 -c "$ICMP_COUNT" -i "$ICMP_INTERVAL" -I "$interface" -s "$datasize" "$host");;
+    2 ) result=$($SUDO ping6 -c "$ICMP_COUNT" -i "$ICMP_INTERVAL" -I "$interface" "$host");;
+    3 ) result=$($SUDO ping6 -c "$ICMP_COUNT" -i "$ICMP_INTERVAL" -I "$interface" -s "$datasize" -D "$host");;
     * ) return 1;;
   esac
   local test_status=$?
@@ -249,7 +246,10 @@ test_http_get () {
 }
 
 main () {
-  printb "$BANNER"
+  if (($# != 1 )); then
+    echo "Usage: $0 interface" >&2
+    exit 1
+  fi
 
   local interface="$1"
   local describe
@@ -276,7 +276,6 @@ main () {
     printb "Check the DHCP server or set IP address(es) by your self.\n"
     exit 1
   fi
-
   echo
 
 
@@ -329,7 +328,6 @@ main () {
     (($check == 0)) && tag_pass || tag_fail
     echo "$describe"
   fi
-
   echo
 
 
@@ -356,7 +354,6 @@ main () {
   check=$?
   (($check == 0)) && tag_pass || tag_fail
   echo "$describe"
-
   echo
 
 
@@ -365,14 +362,9 @@ main () {
   #================================
   printb 'STEP 4. Check service chainning'
   printb 'Invoke mtr using IPv4...'
-  printb 'Enter your password, confirm traceroute result, and press q'
-  sudo screen -S 'mtrv4' mtr -4 -b --interval=$TRACEROUTE_INTERVAL $GOOGLE_PUBLIC_DNS_V4
+  $SUDO screen -S 'mtrv4' mtr -4 -n -i $TRACEROUTE_INTERVAL $GOOGLE_PUBLIC_DNS_V4
   printb 'Invoke mtr using IPv6...'
-  printb 'Enter your password, confirm traceroute result, and press q'
-  sudo screen -S 'mtrv6' mtr -6 -b --interval=$TRACEROUTE_INTERVAL $GOOGLE_PUBLIC_DNS_V6
-  echo
-
-  printb 'Done!'
+  $SUDO screen -S 'mtrv6' mtr -6 -n -i $TRACEROUTE_INTERVAL $GOOGLE_PUBLIC_DNS_V6
   echo
 
 
@@ -380,11 +372,8 @@ main () {
   # Cleanup
   #================================
   rm -rf .dropcheck
+  printb 'Done!'
+  echo
 }
 
-if [ $# != 1 ]; then
-  echo "Usage: $0 interface" >&2
-  exit 1
-fi
-
-main $1
+main $@
